@@ -315,12 +315,13 @@
      */
     function timeoutUserFor(username, time, reason) {
         $.session.sayNow('.timeout ' + username + ' ' + time + ' ' + reason);
-        var timeout = setTimeout(function() {
+
+        var lastTimeout = setTimeout(function() {
             if ($.getMessageWrites() < 50) {
                 $.session.sayNow('.timeout ' + username + ' ' + time + ' ' + reason);
             }
-            clearInterval(timeout);
-        }, 1000, 'scripts::core::chatModerator.js::timeout');
+            clearInterval(lastTimeout);
+        }, 500, 'scripts::core::chatModerator.js::timeout');
     }
 
     /**
@@ -983,8 +984,16 @@
                 return;
             }
 
-            permitUser(action.toLowerCase());
-            $.say($.username.resolve(action) + $.lang.get('chatmoderator.permited', linkPermitTime));
+            action = $.user.sanitize(action);
+
+            // if the user got a warning/timeout, unban him, and remove him from the warning/timeout list.
+            if (timeouts[action] !== undefined) {
+            	$.session.sayNow('.unban ' + action);
+            	delete timeouts[action];
+            }
+
+            permitUser(action);
+            $.say(action + $.lang.get('chatmoderator.permited', linkPermitTime));
             $.log.event(action + ' was permited by ' + sender);
             return;
         }
